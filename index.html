@@ -8,6 +8,7 @@
     <meta name="apple-mobile-web-app-title" content="KHATA PRO">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#2e7d32">
+    <link rel="manifest" href="data:application/json,{}">
     <title>KHATA PRO PREMIUM</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -16,13 +17,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
-        /* CSS ഭാഗം - മുമ്പത്തെത് പോലെ തന്നെ */
         @import url('https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800;14..32,900&display=swap');
         
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         
         html, body { overflow: hidden; width: 100%; height: 100%; position: fixed; background: #f0fdf4; transition: all 0.3s ease; }
         
+        /* ===== THEME COLORS ===== */
         .theme-green { background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%); color: #1b5e20; }
         .theme-blue { background: linear-gradient(145deg, #eff6ff 0%, #bfdbfe 100%); color: #1e3a8a; }
         .theme-purple { background: linear-gradient(145deg, #faf5ff 0%, #e9d5ff 100%); color: #4c1d95; }
@@ -290,33 +291,6 @@
         .manual-check-btn:active { transform: scale(0.96); }
         body.dark-mode .manual-check-btn { background: linear-gradient(135deg, #facc15, #d97706); }
     </style>
-    
-    <!-- ==================== manifest.json inline ==================== -->
-    <script>
-        // Manifest ഫയൽ ഇവിടെ തന്നെ നിർവചിക്കുന്നു
-        const manifest = {
-            "name": "KHATA PRO PREMIUM",
-            "short_name": "KHATA PRO",
-            "description": "Premium Khata Management App with Background Alarm",
-            "start_url": ".",
-            "display": "standalone",
-            "background_color": "#2e7d32",
-            "theme_color": "#2e7d32",
-            "orientation": "portrait",
-            "icons": [
-                {
-                    "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' fill='%232e7d32'/%3E%3Ctext x='256' y='320' font-size='200' text-anchor='middle' fill='white' font-family='sans-serif'%3EK%3C/text%3E%3C/svg%3E",
-                    "sizes": "512x512",
-                    "type": "image/svg+xml"
-                }
-            ]
-        };
-        
-        // Blob URL വഴി manifest.json സൃഷ്ടിക്കുന്നു
-        const manifestBlob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-        const manifestURL = URL.createObjectURL(manifestBlob);
-        document.querySelector('link[rel="manifest"]').href = manifestURL;
-    </script>
 </head>
 <body class="theme-green h-full w-full overflow-hidden">
 
@@ -573,122 +547,37 @@
         <div id="modalBox" class="modal-premium" onclick="event.stopPropagation()"></div>
     </div>
 
-    <!-- ==================== Service Worker inline ==================== -->
+    <!-- Service Worker Registration -->
     <script>
-        // Service Worker ഇവിടെ തന്നെ നിർവചിക്കുന്നു
-        const swCode = `
-        // Service Worker for KHATA PRO
-        const CACHE_NAME = 'khata-pro-v1';
-        const ASSETS = [
-            '.',
-            'index.html'
-        ];
-
-        // Install Service Worker
-        self.addEventListener('install', (event) => {
-            event.waitUntil(
-                caches.open(CACHE_NAME)
-                    .then((cache) => {
-                        return cache.addAll(ASSETS);
-                    })
-                    .then(() => {
-                        return self.skipWaiting();
-                    })
-            );
-        });
-
-        // Activate Service Worker
-        self.addEventListener('activate', (event) => {
-            event.waitUntil(
-                caches.keys().then((cacheNames) => {
-                    return Promise.all(
-                        cacheNames.map((cacheName) => {
-                            if (cacheName !== CACHE_NAME) {
-                                return caches.delete(cacheName);
-                            }
-                        })
-                    );
-                })
-            );
-            return self.clients.claim();
-        });
-
-        // Fetch resources from cache
-        self.addEventListener('fetch', (event) => {
-            event.respondWith(
-                caches.match(event.request)
-                    .then((response) => {
-                        return response || fetch(event.request);
-                    })
-            );
-        });
-
-        // Background Sync for Reminders
-        self.addEventListener('sync', (event) => {
-            if (event.tag === 'reminder-sync') {
-                event.waitUntil(checkReminders());
-            }
-        });
-
-        // Push Notification for Alarms
-        self.addEventListener('push', (event) => {
-            const data = event.data.json();
-            const options = {
-                body: data.body,
-                icon: data.icon || 'https://cdn.jsdelivr.net/npm/heroicons@1.0.0/outline/calculator.svg',
-                badge: data.icon || 'https://cdn.jsdelivr.net/npm/heroicons@1.0.0/outline/calculator.svg',
-                vibrate: [200, 100, 200],
-                tag: data.tag || 'reminder',
-                requireInteraction: true,
-                actions: [
-                    { action: 'open', title: 'Open App' },
-                    { action: 'dismiss', title: 'Dismiss' }
-                ]
-            };
-            event.waitUntil(
-                self.registration.showNotification(data.title, options)
-            );
-        });
-
-        // Notification Click Handler
-        self.addEventListener('notificationclick', (event) => {
-            event.notification.close();
-            if (event.action === 'open') {
-                event.waitUntil(
-                    clients.openWindow('/')
-                );
-            }
-        });
-
-        // Function to check reminders (for background sync)
-        async function checkReminders() {
-            try {
-                const clientsList = await self.clients.matchAll({ type: 'window' });
-                if (clientsList.length > 0) {
-                    clientsList[0].postMessage({ type: 'CHECK_REMINDERS' });
-                }
-            } catch (error) {
-                console.log('Reminder check error:', error);
-            }
-        }
-        `;
-        
-        // Service Worker രജിസ്റ്റർ ചെയ്യുന്നു
         if ('serviceWorker' in navigator) {
-            const swBlob = new Blob([swCode], {type: 'application/javascript'});
-            const swURL = URL.createObjectURL(swBlob);
-            
-            navigator.serviceWorker.register(swURL)
-                .then(function(registration) {
-                    console.log('Service Worker registered with scope:', registration.scope);
-                })
-                .catch(function(error) {
-                    console.log('Service Worker registration failed:', error);
+            const swCode = `
+                self.addEventListener('install', (event) => {
+                    event.waitUntil(self.skipWaiting());
                 });
+                self.addEventListener('activate', (event) => {
+                    event.waitUntil(self.clients.claim());
+                });
+                self.addEventListener('push', (event) => {
+                    const data = event.data.json();
+                    const options = {
+                        body: data.body,
+                        icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect width=%22512%22 height=%22512%22 fill=%22%232e7d32%22/%3E%3Ctext x=%22256%22 y=%22320%22 font-size=%22200%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E',
+                        badge: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 512 512%22%3E%3Crect width=%22512%22 height=%22512%22 fill=%22%232e7d32%22/%3E%3Ctext x=%22256%22 y=%22320%22 font-size=%22200%22 text-anchor=%22middle%22 fill=%22white%22 font-family=%22sans-serif%22%3EK%3C/text%3E%3C/svg%3E',
+                        vibrate: [200, 100, 200],
+                        tag: data.tag || 'reminder',
+                        requireInteraction: true
+                    };
+                    event.waitUntil(self.registration.showNotification(data.title, options));
+                });
+            `;
+            const blob = new Blob([swCode], {type: 'application/javascript'});
+            const swURL = URL.createObjectURL(blob);
+            navigator.serviceWorker.register(swURL)
+                .then(() => console.log('Service Worker registered'))
+                .catch(() => console.log('Service Worker registration failed'));
         }
     </script>
 
-    <!-- ==================== Main App JavaScript ==================== -->
     <script>
         // ==================== DATA LAYER ====================
         const STORAGE_ID = 'KHATA_PRO_PREMIUM_V8';
@@ -707,14 +596,7 @@
             try {
                 localStorage.setItem(STORAGE_ID, JSON.stringify(db)); 
                 console.log('Data saved successfully');
-                if(document.getElementById('homeWorkspaceView') && !document.getElementById('homeWorkspaceView').classList.contains('hidden')) {
-                    renderDashboard();
-                    renderClientListFeed();
-                }
-                if(document.getElementById('memoWorkspaceView') && document.getElementById('memoWorkspaceView').classList.contains('flex')) renderReminders();
-                if(document.getElementById('vehicleWorkspaceView') && document.getElementById('vehicleWorkspaceView').classList.contains('flex')) renderVehicleExpenses();
-                if(document.getElementById('incomeExpenseWorkspaceView') && document.getElementById('incomeExpenseWorkspaceView').classList.contains('flex')) renderIncomeExpenseList();
-                if(activeCid) renderDetails();
+                renderAll();
             } catch(e) {
                 console.error('Save error:', e);
                 alert('Data save failed: ' + e.message);
@@ -962,7 +844,6 @@
             db.reminders.forEach(rem => {
                 if (rem.alertSent) return;
                 if (rem.dueDate === getToday() && rem.dueTime <= currentTime) {
-                    // Send Notification
                     if ('Notification' in window && Notification.permission === 'granted') {
                         new Notification('🔔 KHATA PRO Reminder', { 
                             body: `${rem.title}\nTime's up!`,
@@ -1006,6 +887,10 @@
                 alert('No pending alarms for today at this time.');
             }
         }
+
+        // ==================== MODAL ====================
+        function openModal(html) { document.getElementById('modalBox').innerHTML = html; document.getElementById('modalOverlay').style.display = 'flex'; }
+        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
 
         // ==================== DASHBOARD ====================
         function renderDashboard() {

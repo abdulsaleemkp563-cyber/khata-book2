@@ -361,9 +361,29 @@
         }
 
         // ==================== LOCK ====================
-        function pressKey(n) { if(currentPinInput.length < 4) { currentPinInput += n; updateDots(); if(currentPinInput.length === 4) setTimeout(checkPin, 150); } }
-        function clearCurrentPin() { currentPinInput = ""; updateDots(); }
-        function updateDots() { for(let i=0;i<4;i++){ const el=document.getElementById(`dot-${i}`); if(el) { if(i<currentPinInput.length){ el.className = 'lock-dot active'; } else { el.className = 'lock-dot'; } } } }
+        function pressKey(n) { 
+            if(currentPinInput.length < 4) { 
+                currentPinInput += n; 
+                updateDots(); 
+                if(currentPinInput.length === 4) setTimeout(checkPin, 150); 
+            } 
+        }
+        function clearCurrentPin() { 
+            currentPinInput = ""; 
+            updateDots(); 
+        }
+        function updateDots() { 
+            for(let i=0;i<4;i++){ 
+                const el=document.getElementById(`dot-${i}`); 
+                if(el) { 
+                    if(i<currentPinInput.length){ 
+                        el.className = 'lock-dot active'; 
+                    } else { 
+                        el.className = 'lock-dot'; 
+                    } 
+                } 
+            } 
+        }
         function checkPin() {
             if(!db.pin || db.pin === '') {
                 if(!tempFirstSetupPin) { 
@@ -1224,29 +1244,29 @@
                     const file = new File([blob], 'qr_code.png', { type: 'image/png' }); 
                     if (navigator.share) { 
                         navigator.share({
-                            title: 'Payment QR Code', 
-                            text: `Payment Request: ₹${currentQRAmount}`, 
-                            files: [file] 
-                        }).catch(() => fallbackWhatsAppShare()); 
-                    } else { 
-                        fallbackWhatsAppShare(); 
-                    } 
-                }); 
-            }).catch(() => fallbackWhatsAppShare()); 
-            function fallbackWhatsAppShare() { 
-                const cust = db.customers.find(c => c.id === activeCid); 
-                const phone = cust?.phone; 
-                let waUrl = ''; 
-                if(phone && phone !== '-') { 
-                    let cleanPhone = phone.replace(/\D/g, ''); 
-                    if(cleanPhone.length === 10) cleanPhone = '91' + cleanPhone; 
-                    waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`; 
-                } else { 
-                    waUrl = `https://wa.me/?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`; 
-                } 
-                window.open(waUrl, '_blank'); 
-            } 
-            closeModal(); 
+                            title: 'Payment QR Code',
+                            text: `Payment Request: ₹${currentQRAmount}`,
+                            files: [file]
+                        }).catch(() => fallbackWhatsAppShare());
+                    } else {
+                        fallbackWhatsAppShare();
+                    }
+                });
+            }).catch(() => fallbackWhatsAppShare());
+            function fallbackWhatsAppShare() {
+                const cust = db.customers.find(c => c.id === activeCid);
+                const phone = cust?.phone;
+                let waUrl = '';
+                if(phone && phone !== '-') {
+                    let cleanPhone = phone.replace(/\D/g, '');
+                    if(cleanPhone.length === 10) cleanPhone = '91' + cleanPhone;
+                    waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`;
+                } else {
+                    waUrl = `https://wa.me/?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`;
+                }
+                window.open(waUrl, '_blank');
+            }
+            closeModal();
         }
         function shareWA(p,b) { 
             if(!p || p === '-') return alert("Phone missing"); 

@@ -1223,7 +1223,7 @@
                 canvas.toBlob(blob => { 
                     const file = new File([blob], 'qr_code.png', { type: 'image/png' }); 
                     if (navigator.share) { 
-                        navigator.share({ 
+                        navigator.share({
                             title: 'Payment QR Code', 
                             text: `Payment Request: ₹${currentQRAmount}`, 
                             files: [file] 

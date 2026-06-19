@@ -544,6 +544,8 @@
         let db = JSON.parse(localStorage.getItem(STORAGE_ID)) || { 
             customers: [], trans: [], promises: [], reminders: [], vehicleExpenses: [],
             incomes: [], expenses: [],
+            incomeCategories: ['Salary', 'Business', 'Rent', 'Investment', 'Gift', 'Other'],
+            expenseCategories: ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'],
             pin: '', upi: '', darkMode: false, theme: 'green', alarmEnabled: true,
             alarmFile: null 
         };
@@ -1173,7 +1175,7 @@
             } 
         }
 
-        // ==================== INCOME & EXPENSE ====================
+        // ==================== INCOME & EXPENSE - പുതിയ കേറ്റഗറി ഫീച്ചർ ====================
         function switchIETab(tab) { 
             currentIETab = tab; 
             const incomeBtn = document.getElementById('incomeTabBtn'), expenseBtn = document.getElementById('expenseTabBtn'), addBtn = document.getElementById('addIeBtn'); 
@@ -1192,6 +1194,174 @@
             } 
             renderIncomeExpenseList(); 
         }
+
+        // കേറ്റഗറി ലിസ്റ്റ് കാണിക്കാനുള്ള ഫങ്ഷൻ
+        function renderCategoryList(type) {
+            const categories = type === 'income' ? db.incomeCategories : db.expenseCategories;
+            let html = '<div class="mt-2 space-y-1">';
+            categories.forEach((cat, index) => {
+                html += `
+                    <div class="flex justify-between items-center p-2 bg-gray-100 dark:bg-slate-700 rounded-lg">
+                        <span class="text-sm font-bold">${cat}</span>
+                        <button onclick="deleteCategory('${type}', ${index})" class="text-red-500 hover:text-red-700 text-xs">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            html += '</div>';
+            return html;
+        }
+
+        // കേറ്റഗറി ഡിലീറ്റ് ചെയ്യാനുള്ള ഫങ്ഷൻ
+        function deleteCategory(type, index) {
+            if (confirm('Are you sure you want to delete this category?')) {
+                if (type === 'income') {
+                    db.incomeCategories.splice(index, 1);
+                } else {
+                    db.expenseCategories.splice(index, 1);
+                }
+                saveDB();
+                // മോഡൽ വീണ്ടും തുറക്കുക
+                closeModal();
+                setTimeout(() => {
+                    if (currentIETab === 'income') {
+                        openAddIncomeModal();
+                    } else {
+                        openAddExpenseModal();
+                    }
+                }, 100);
+            }
+        }
+
+        // പുതിയ കേറ്റഗറി add ചെയ്യാനുള്ള ഫങ്ഷൻ (പരിഹരിച്ചത്)
+        function addNewCategory(type) {
+            const categoryInput = prompt('Enter new category name:');
+            if (categoryInput && categoryInput.trim() !== '') {
+                const category = categoryInput.trim();
+                console.log('Adding category:', category, 'type:', type);
+                console.log('Before add - Income categories:', db.incomeCategories);
+                console.log('Before add - Expense categories:', db.expenseCategories);
+                
+                if (type === 'income') {
+                    if (!db.incomeCategories.includes(category)) {
+                        db.incomeCategories.push(category);
+                        saveDB();
+                        alert(`✅ Category "${category}" added successfully!`);
+                        console.log('After add - Income categories:', db.incomeCategories);
+                        // മോഡൽ അടച്ച് വീണ്ടും തുറക്കുക (പഴയ ഡാറ്റ clear ചെയ്യാൻ)
+                        closeModal();
+                        setTimeout(() => {
+                            if (currentIETab === 'income') {
+                                openAddIncomeModal();
+                            } else {
+                                openAddExpenseModal();
+                            }
+                        }, 100);
+                    } else {
+                        alert('❌ Category already exists!');
+                    }
+                } else {
+                    if (!db.expenseCategories.includes(category)) {
+                        db.expenseCategories.push(category);
+                        saveDB();
+                        alert(`✅ Category "${category}" added successfully!`);
+                        console.log('After add - Expense categories:', db.expenseCategories);
+                        // മോഡൽ അടച്ച് വീണ്ടും തുറക്കുക (പഴയ ഡാറ്റ clear ചെയ്യാൻ)
+                        closeModal();
+                        setTimeout(() => {
+                            if (currentIETab === 'income') {
+                                openAddIncomeModal();
+                            } else {
+                                openAddExpenseModal();
+                            }
+                        }, 100);
+                    } else {
+                        alert('❌ Category already exists!');
+                    }
+                }
+            } else {
+                alert('❌ Category name cannot be empty!');
+            }
+        }
+
+        function openAddIncomeModal() { 
+            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
+            const categories = db.incomeCategories || ['Salary', 'Business', 'Rent', 'Investment', 'Gift', 'Other'];
+            let options = '<option value="">-- Select Category --</option>';
+            categories.forEach(cat => {
+                options += `<option value="${cat}">💰 ${cat}</option>`;
+            });
+            
+            openModal(`
+                <h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-circle-dollar-to-slot text-green-500"></i> Add Income</h2>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div>
+                    <div>
+                        <label class="text-sm font-bold">Category</label>
+                        <div class="flex gap-2">
+                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${options}
+                            </select>
+                            <button onclick="addNewCategory('income')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="showCategoryList('income')" class="text-xs text-blue-600 hover:underline">📋 Manage Categories</button>
+                            <div id="categoryListContainer" class="hidden mt-2"></div>
+                        </div>
+                    </div>
+                    <div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${getToday()}"></div>
+                    <div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2" placeholder="Additional details..."></textarea></div>
+                    <button class="w-full p-3 bg-green-600 text-white font-black rounded-xl action-btn text-base" onclick="saveIncomeEntry()">💾 SAVE INCOME</button>
+                    <button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button>
+                </div>
+            `); 
+        }
+
+        // കേറ്റഗറി ലിസ്റ്റ് കാണിക്കാനുള്ള ഫങ്ഷൻ
+        function showCategoryList(type) {
+            const container = document.getElementById('categoryListContainer');
+            if (container.classList.contains('hidden')) {
+                container.classList.remove('hidden');
+                container.innerHTML = renderCategoryList(type);
+            } else {
+                container.classList.add('hidden');
+            }
+        }
+
+        function openAddExpenseModal() { 
+            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
+            const categories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
+            let options = '<option value="">-- Select Category --</option>';
+            categories.forEach(cat => {
+                options += `<option value="${cat}">🍔 ${cat}</option>`;
+            });
+            
+            openModal(`
+                <h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-cart-shopping text-red-500"></i> Add Expense</h2>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div>
+                    <div>
+                        <label class="text-sm font-bold">Category</label>
+                        <div class="flex gap-2">
+                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${options}
+                            </select>
+                            <button onclick="addNewCategory('expense')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="showCategoryList('expense')" class="text-xs text-blue-600 hover:underline">📋 Manage Categories</button>
+                            <div id="categoryListContainer" class="hidden mt-2"></div>
+                        </div>
+                    </div>
+                    <div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${getToday()}"></div>
+                    <div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2" placeholder="Additional details..."></textarea></div>
+                    <button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="saveExpenseEntry()">💾 SAVE EXPENSE</button>
+                    <button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button>
+                </div>
+            `); 
+        }
+
         function getFilteredIEEntries() { 
             const selectedDate = document.getElementById('ieFilterDate')?.value || "", selectedMonth = document.getElementById('ieFilterMonth')?.value || "", searchText = document.getElementById('ieSearchInput')?.value.toLowerCase() || ""; 
             let incomes = [...(db.incomes || [])], expenses = [...(db.expenses || [])]; 
@@ -1200,6 +1370,7 @@
             if(searchText) { incomes = incomes.filter(i => i.category.toLowerCase().includes(searchText) || (i.notes || "").toLowerCase().includes(searchText)); expenses = expenses.filter(e => e.category.toLowerCase().includes(searchText) || (e.notes || "").toLowerCase().includes(searchText)); } 
             return { incomes, expenses }; 
         }
+
         function renderIncomeExpenseList() { 
             const { incomes, expenses } = getFilteredIEEntries(); 
             const totalIncome = incomes.reduce((s,i) => s + i.amount, 0); 
@@ -1260,17 +1431,150 @@
             } 
             document.getElementById('ieListContainer').innerHTML = html || `<div class="text-center text-gray-400 dark:text-gray-500 py-8 text-base font-bold"><i class="fa-solid fa-${currentIETab === 'income' ? 'circle-dollar-to-slot' : 'cart-shopping'} text-3xl mb-2"></i><p>No ${currentIETab} records.<br>Click ADD!</p></div>`; 
         }
+
         function clearIEFilters() { document.getElementById('ieFilterDate').value = ''; document.getElementById('ieFilterMonth').value = ''; document.getElementById('ieSearchInput').value = ''; renderIncomeExpenseList(); }
-        function openAddIncomeModal() { openModal(`<h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-circle-dollar-to-slot text-green-500"></i> Add Income</h2><div class="space-y-3"><div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div><div><label class="text-sm font-bold">Category</label><select id="ieCategory" class="w-full p-2 rounded-xl border input-premium text-base"><option value="Salary">💰 Salary</option><option value="Business">🏪 Business</option><option value="Rent">🏠 Rent</option><option value="Investment">📈 Investment</option><option value="Gift">🎁 Gift</option><option value="Other">📌 Other</option></select></div><div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${getToday()}"></div><div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2" placeholder="Additional details..."></textarea></div><button class="w-full p-3 bg-green-600 text-white font-black rounded-xl action-btn text-base" onclick="saveIncomeEntry()">💾 SAVE INCOME</button><button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
-        function openAddExpenseModal() { openModal(`<h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-cart-shopping text-red-500"></i> Add Expense</h2><div class="space-y-3"><div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div><div><label class="text-sm font-bold">Category</label><select id="ieCategory" class="w-full p-2 rounded-xl border input-premium text-base"><option value="Food">🍔 Food</option><option value="Travel">✈️ Travel</option><option value="Bills">💡 Bills</option><option value="Shopping">🛍️ Shopping</option><option value="Medical">🏥 Medical</option><option value="Other">📌 Other</option></select></div><div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${getToday()}"></div><div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2" placeholder="Additional details..."></textarea></div><button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="saveExpenseEntry()">💾 SAVE EXPENSE</button><button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
-        function saveIncomeEntry() { const amount = parseFloat(document.getElementById('ieAmount').value); if(isNaN(amount)||amount<=0) return alert("Please enter valid amount"); const category = document.getElementById('ieCategory').value; const date = document.getElementById('ieDate').value; const notes = document.getElementById('ieNotes').value.trim(); let icon = 'fa-circle-dollar-to-slot'; if(category === 'Salary') icon = 'fa-money-bill-wave'; else if(category === 'Business') icon = 'fa-store'; else if(category === 'Rent') icon = 'fa-building'; else if(category === 'Investment') icon = 'fa-chart-line'; else if(category === 'Gift') icon = 'fa-gift'; db.incomes.push({ id: Date.now(), amount, category, date, notes, icon }); saveDB(); closeModal(); renderIncomeExpenseList(); }
-        function saveExpenseEntry() { const amount = parseFloat(document.getElementById('ieAmount').value); if(isNaN(amount)||amount<=0) return alert("Please enter valid amount"); const category = document.getElementById('ieCategory').value; const date = document.getElementById('ieDate').value; const notes = document.getElementById('ieNotes').value.trim(); let icon = 'fa-cart-shopping'; if(category === 'Food') icon = 'fa-utensils'; else if(category === 'Travel') icon = 'fa-plane'; else if(category === 'Bills') icon = 'fa-file-invoice-dollar'; else if(category === 'Shopping') icon = 'fa-bag-shopping'; else if(category === 'Medical') icon = 'fa-hospital'; db.expenses.push({ id: Date.now(), amount, category, date, notes, icon }); saveDB(); closeModal(); renderIncomeExpenseList(); }
-        function openEditIncomeModal(id) { const inc = db.incomes.find(i => i.id === id); if(!inc) return; openModal(`<h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-pen"></i> Edit Income</h2><div class="space-y-3"><div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" value="${inc.amount}"></div><div><label class="text-sm font-bold">Category</label><select id="ieCategory" class="w-full p-2 rounded-xl border input-premium text-base"><option value="Salary" ${inc.category==='Salary'?'selected':''}>💰 Salary</option><option value="Business" ${inc.category==='Business'?'selected':''}>🏪 Business</option><option value="Rent" ${inc.category==='Rent'?'selected':''}>🏠 Rent</option><option value="Investment" ${inc.category==='Investment'?'selected':''}>📈 Investment</option><option value="Gift" ${inc.category==='Gift'?'selected':''}>🎁 Gift</option><option value="Other" ${inc.category==='Other'?'selected':''}>📌 Other</option></select></div><div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${inc.date}"></div><div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2">${inc.notes || ''}</textarea></div><button class="w-full p-3 bg-green-600 text-white font-black rounded-xl action-btn text-base" onclick="updateIncomeEntry(${id})">💾 UPDATE</button><button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
-        function openEditExpenseModal(id) { const exp = db.expenses.find(e => e.id === id); if(!exp) return; openModal(`<h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-pen"></i> Edit Expense</h2><div class="space-y-3"><div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" value="${exp.amount}"></div><div><label class="text-sm font-bold">Category</label><select id="ieCategory" class="w-full p-2 rounded-xl border input-premium text-base"><option value="Food" ${exp.category==='Food'?'selected':''}>🍔 Food</option><option value="Travel" ${exp.category==='Travel'?'selected':''}>✈️ Travel</option><option value="Bills" ${exp.category==='Bills'?'selected':''}>💡 Bills</option><option value="Shopping" ${exp.category==='Shopping'?'selected':''}>🛍️ Shopping</option><option value="Medical" ${exp.category==='Medical'?'selected':''}>🏥 Medical</option><option value="Other" ${exp.category==='Other'?'selected':''}>📌 Other</option></select></div><div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${exp.date}"></div><div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2">${exp.notes || ''}</textarea></div><button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="updateExpenseEntry(${id})">💾 UPDATE</button><button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
-        function updateIncomeEntry(id) { const inc = db.incomes.find(i => i.id === id); if(inc) { inc.amount = parseFloat(document.getElementById('ieAmount').value); inc.category = document.getElementById('ieCategory').value; inc.date = document.getElementById('ieDate').value; inc.notes = document.getElementById('ieNotes').value.trim(); saveDB(); closeModal(); renderIncomeExpenseList(); } }
-        function updateExpenseEntry(id) { const exp = db.expenses.find(e => e.id === id); if(exp) { exp.amount = parseFloat(document.getElementById('ieAmount').value); exp.category = document.getElementById('ieCategory').value; exp.date = document.getElementById('ieDate').value; exp.notes = document.getElementById('ieNotes').value.trim(); saveDB(); closeModal(); renderIncomeExpenseList(); } }
-        function deleteIncomeEntry(id) { if(confirm("Delete this income entry?")) { db.incomes = db.incomes.filter(i => i.id !== id); saveDB(); renderIncomeExpenseList(); } }
-        function deleteExpenseEntry(id) { if(confirm("Delete this expense entry?")) { db.expenses = db.expenses.filter(e => e.id !== id); saveDB(); renderIncomeExpenseList(); } }
+
+        function saveIncomeEntry() { 
+            const amount = parseFloat(document.getElementById('ieAmount').value); 
+            if(isNaN(amount)||amount<=0) return alert("Please enter valid amount"); 
+            const category = document.getElementById('ieCategory').value; 
+            if(!category || category === '') return alert("Please select a category"); 
+            const date = document.getElementById('ieDate').value; 
+            const notes = document.getElementById('ieNotes').value.trim(); 
+            let icon = 'fa-circle-dollar-to-slot'; 
+            if(category === 'Salary') icon = 'fa-money-bill-wave'; 
+            else if(category === 'Business') icon = 'fa-store'; 
+            else if(category === 'Rent') icon = 'fa-building'; 
+            else if(category === 'Investment') icon = 'fa-chart-line'; 
+            else if(category === 'Gift') icon = 'fa-gift'; 
+            db.incomes.push({ id: Date.now(), amount, category, date, notes, icon }); 
+            saveDB(); 
+            closeModal(); 
+            renderIncomeExpenseList(); 
+        }
+
+        function saveExpenseEntry() { 
+            const amount = parseFloat(document.getElementById('ieAmount').value); 
+            if(isNaN(amount)||amount<=0) return alert("Please enter valid amount"); 
+            const category = document.getElementById('ieCategory').value; 
+            if(!category || category === '') return alert("Please select a category"); 
+            const date = document.getElementById('ieDate').value; 
+            const notes = document.getElementById('ieNotes').value.trim(); 
+            let icon = 'fa-cart-shopping'; 
+            if(category === 'Food') icon = 'fa-utensils'; 
+            else if(category === 'Travel') icon = 'fa-plane'; 
+            else if(category === 'Bills') icon = 'fa-file-invoice-dollar'; 
+            else if(category === 'Shopping') icon = 'fa-bag-shopping'; 
+            else if(category === 'Medical') icon = 'fa-hospital'; 
+            db.expenses.push({ id: Date.now(), amount, category, date, notes, icon }); 
+            saveDB(); 
+            closeModal(); 
+            renderIncomeExpenseList(); 
+        }
+
+        function openEditIncomeModal(id) { 
+            const inc = db.incomes.find(i => i.id === id); 
+            if(!inc) return; 
+            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
+            const categories = db.incomeCategories || ['Salary', 'Business', 'Rent', 'Investment', 'Gift', 'Other'];
+            let options = '';
+            categories.forEach(cat => {
+                options += `<option value="${cat}" ${inc.category === cat ? 'selected' : ''}>💰 ${cat}</option>`;
+            });
+            
+            openModal(`
+                <h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-pen"></i> Edit Income</h2>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" value="${inc.amount}"></div>
+                    <div>
+                        <label class="text-sm font-bold">Category</label>
+                        <div class="flex gap-2">
+                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${options}
+                            </select>
+                            <button onclick="addNewCategory('income')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                    </div>
+                    <div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${inc.date}"></div>
+                    <div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2">${inc.notes || ''}</textarea></div>
+                    <button class="w-full p-3 bg-green-600 text-white font-black rounded-xl action-btn text-base" onclick="updateIncomeEntry(${id})">💾 UPDATE</button>
+                    <button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button>
+                </div>
+            `); 
+        }
+
+        function openEditExpenseModal(id) { 
+            const exp = db.expenses.find(e => e.id === id); 
+            if(!exp) return; 
+            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
+            const categories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
+            let options = '';
+            categories.forEach(cat => {
+                options += `<option value="${cat}" ${exp.category === cat ? 'selected' : ''}>🍔 ${cat}</option>`;
+            });
+            
+            openModal(`
+                <h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-pen"></i> Edit Expense</h2>
+                <div class="space-y-3">
+                    <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" value="${exp.amount}"></div>
+                    <div>
+                        <label class="text-sm font-bold">Category</label>
+                        <div class="flex gap-2">
+                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${options}
+                            </select>
+                            <button onclick="addNewCategory('expense')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                    </div>
+                    <div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${exp.date}"></div>
+                    <div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2">${exp.notes || ''}</textarea></div>
+                    <button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="updateExpenseEntry(${id})">💾 UPDATE</button>
+                    <button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button>
+                </div>
+            `); 
+        }
+
+        function updateIncomeEntry(id) { 
+            const inc = db.incomes.find(i => i.id === id); 
+            if(inc) { 
+                inc.amount = parseFloat(document.getElementById('ieAmount').value); 
+                inc.category = document.getElementById('ieCategory').value; 
+                inc.date = document.getElementById('ieDate').value; 
+                inc.notes = document.getElementById('ieNotes').value.trim(); 
+                saveDB(); 
+                closeModal(); 
+                renderIncomeExpenseList(); 
+            } 
+        }
+
+        function updateExpenseEntry(id) { 
+            const exp = db.expenses.find(e => e.id === id); 
+            if(exp) { 
+                exp.amount = parseFloat(document.getElementById('ieAmount').value); 
+                exp.category = document.getElementById('ieCategory').value; 
+                exp.date = document.getElementById('ieDate').value; 
+                exp.notes = document.getElementById('ieNotes').value.trim(); 
+                saveDB(); 
+                closeModal(); 
+                renderIncomeExpenseList(); 
+            } 
+        }
+
+        function deleteIncomeEntry(id) { 
+            if(confirm("Delete this income entry?")) { 
+                db.incomes = db.incomes.filter(i => i.id !== id); 
+                saveDB(); 
+                renderIncomeExpenseList(); 
+            } 
+        }
+
+        function deleteExpenseEntry(id) { 
+            if(confirm("Delete this expense entry?")) { 
+                db.expenses = db.expenses.filter(e => e.id !== id); 
+                saveDB(); 
+                renderIncomeExpenseList(); 
+            } 
+        }
 
         // ==================== VEHICLE ====================
         function renderVehicleExpenses() { if (!db.vehicleExpenses) db.vehicleExpenses = []; const sorted = [...db.vehicleExpenses].sort((a,b)=>new Date(b.date)-new Date(a.date)); let total = 0, html = ''; sorted.forEach(exp => { total += exp.amount; html += `
@@ -1533,6 +1837,17 @@
                 <button class="w-full mt-1 p-2 text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Close</button>
             `); 
         }
+
+        // ==================== PRINT / PDF ====================
+        function openPrintModal() { const cust = db.customers.find(c => c.id === activeCid); if(!cust) return; openModal(`<div><h2 class="font-black text-center text-green-800 dark:text-amber-400 text-base">🖨️ PRINT LEDGER</h2><div class="grid grid-cols-2 gap-2 my-2"><input id="ps" type="date" class="p-2 border border-green-200 dark:border-slate-600 rounded-lg text-base dark:bg-slate-800" value="2025-01-01"><input id="pe" type="date" class="p-2 border border-green-200 dark:border-slate-600 rounded-lg text-base dark:bg-slate-800" value="${getToday()}"></div><button class="w-full p-2 bg-indigo-600 text-white rounded-lg font-black action-btn text-base" onclick="generatePrintA4()">📄 GENERATE</button><button class="w-full mt-2 p-2 text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
+        function generatePrintA4() { const s = document.getElementById('ps').value, e = document.getElementById('pe').value, cust = db.customers.find(c => c.id === activeCid); const filtered = db.trans.filter(t => t.cid === activeCid && t.date >= s && t.date <= e).sort((a,b) => new Date(a.date) - new Date(b.date)); let rt = 0; let rows = filtered.map(t => { rt += (t.type === 'GAVE' ? t.amt : -t.amt); return `<tr><td style="padding:6px;font-size:12px">${fmtDate(t.date)}<br><small>${t.rem || ''}</small></td><td style="text-align:right">${t.type === 'GAVE' ? '₹'+t.amt.toFixed(2) : '-'}</td><td style="text-align:right">${t.type === 'GOT' ? '₹'+t.amt.toFixed(2) : '-'}</td><td style="text-align:right">₹${Math.abs(rt).toFixed(2)}</td></tr>`; }).join(''); const win = window.open('','_blank'); win.document.write(`<!DOCTYPE html><html><head><title>${cust.name} Statement</title><style>body{font-family:sans-serif;padding:15px}table{width:100%;border-collapse:collapse}th,td{border-bottom:1px solid #ccc;padding:6px;font-size:12px}th{background:#2e7d32;color:white}.text-right{text-align:right}@media print{body{padding:0}}@page{size:A4;margin:8mm}</style></head><body><h2 style="text-align:center;font-size:18px">KHATA PRO LEDGER</h2><p><strong>${cust.name}</strong> | ${cust.phone || ''}</p><p>Period: ${fmtDate(s)} - ${fmtDate(e)}</p><table class="w-full"><thead><tr><th>Date & Notes</th><th class="text-right">Gave</th><th class="text-right">Got</th><th class="text-right">Balance</th></tr></thead><tbody>${rows}</tbody></table><h3 style="text-align:right">Closing: ₹${Math.abs(rt).toFixed(2)}</h3><div style="text-align:center;margin-top:15px"><button onclick="window.print()">Print</button> <button onclick="window.close()">Close</button></div></body></html>`); win.document.close(); closeModal(); }
+        function openPDFModal() { openModal(`<div><h2 class="font-black text-center text-green-800 dark:text-amber-400 text-base">📄 PDF Statement</h2><div class="grid grid-cols-2 gap-2 my-2"><input id="ps" type="date" class="p-2 border border-green-200 dark:border-slate-600 rounded-lg text-base dark:bg-slate-800" value="2025-01-01"><input id="pe" type="date" class="p-2 border border-green-200 dark:border-slate-600 rounded-lg text-base dark:bg-slate-800" value="${getToday()}"></div><button class="w-full p-2 bg-blue-600 text-white rounded-lg font-black action-btn text-base" onclick="generatePDF()">CREATE PDF</button><button class="w-full mt-2 p-2 text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button></div>`); }
+        function generatePDF() { const s = document.getElementById('ps').value, e = document.getElementById('pe').value, cust = db.customers.find(c => c.id === activeCid); const filtered = db.trans.filter(t => t.cid === activeCid && t.date >= s && t.date <= e).sort((a,b) => new Date(a.date) - new Date(b.date)); const el = document.createElement('div'); el.style.padding = '15px'; el.style.background = '#fff'; let rt = 0; let rows = filtered.map(t => { rt += (t.type === 'GAVE' ? t.amt : -t.amt); return `<tr><td style="border:1px solid #ccc;padding:5px;font-size:11px">${fmtDate(t.date)} ${t.time || ''}</td><td style="border:1px solid #ccc">${t.type === 'GAVE' ? '₹'+t.amt.toFixed(2) : '-'}</td><td style="border:1px solid #ccc">${t.type === 'GOT' ? '₹'+t.amt.toFixed(2) : '-'}</td><td style="border:1px solid #ccc">₹${rt.toFixed(2)}</td></tr>`; }).join(''); el.innerHTML = `<h2 style="text-align:center;font-size:16px">KHATA PRO LEDGER</h2><p><strong>${cust.name}</strong> | ${cust.phone || ''}</p><p>Period: ${fmtDate(s)} - ${fmtDate(e)}</p><table style="width:100%;border-collapse:collapse">${rows}</table><h3 style="margin-top:10px">Closing: ₹${Math.abs(rt).toFixed(2)}</h3>`; html2pdf().set({margin:0.5,filename:`${cust.name}_statement.pdf`}).from(el).save(); }
+
+        // ==================== QR & SHARE ====================
+        function openQR(amt) { if(!db.upi) return alert("Set UPI ID in settings"); currentQRAmount = amt; openModal(`<div class="text-center"><div id="qr-container" class="bg-white p-3 rounded-xl inline-block shadow-md"></div><p class="font-black text-xl mt-2 text-green-800 dark:text-amber-400">₹${amt}</p><p class="text-sm font-bold text-green-600 dark:text-amber-400">${db.upi}</p><div class="grid grid-cols-2 gap-2 mt-3"><button onclick="shareQRToWhatsApp()" class="bg-green-600 text-white p-2 rounded-lg font-bold action-btn text-base"><i class="fab fa-whatsapp mr-1"></i> WhatsApp</button><button onclick="closeModal()" class="bg-gray-300 dark:bg-slate-700 text-gray-800 dark:text-white p-2 rounded-lg font-bold action-btn text-base">Close</button></div></div>`); setTimeout(() => { const qc = document.getElementById("qr-container"); if(qc) { qc.innerHTML = ""; new QRCode(qc, { text: `upi://pay?pa=${db.upi}&am=${amt}&cu=INR`, width: 160, height: 160, colorDark: "#000000", colorLight: "#ffffff" }); } }, 100); }
+        function shareQRToWhatsApp() { const qrElement = document.getElementById("qr-container"); if(!qrElement) return; html2canvas(qrElement, { backgroundColor: '#ffffff', scale: 2 }).then(canvas => { canvas.toBlob(blob => { const file = new File([blob], 'qr_code.png', { type: 'image/png' }); if (navigator.share) { navigator.share({ title: 'Payment QR Code', text: `Payment Request: ₹${currentQRAmount}`, files: [file] }).catch(() => fallbackWhatsAppShare()); } else { fallbackWhatsAppShare(); } }); }).catch(() => fallbackWhatsAppShare()); function fallbackWhatsAppShare() { const cust = db.customers.find(c => c.id === activeCid); const phone = cust?.phone; let waUrl = ''; if(phone && phone !== '-') { let cleanPhone = phone.replace(/\D/g, ''); if(cleanPhone.length === 10) cleanPhone = '91' + cleanPhone; waUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`; } else { waUrl = `https://wa.me/?text=${encodeURIComponent(`💰 Payment Request\nAmount: ₹${currentQRAmount}\nUPI: ${db.upi}`)}`; } window.open(waUrl, '_blank'); } closeModal(); }
+        function shareWA(p,b) { if(!p || p === '-') return alert("Phone missing"); const msg = `KHATA PRO SECURE\nClient Balance: ₹${Math.abs(b).toFixed(2)}\nThank you!`; window.open(`https://wa.me/91${p}?text=${encodeURIComponent(msg)}`); }
 
         // ==================== CALCULATOR ====================
         let currentCalculatorInput = "0";

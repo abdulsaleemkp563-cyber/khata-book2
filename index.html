@@ -425,7 +425,7 @@
             <div id="incomeExpenseWorkspaceView" class="hidden flex-col h-full overflow-hidden">
                 <div class="flex gap-2 mb-2 shrink-0">
                     <button id="incomeTabBtn" onclick="switchIETab('income')" class="flex-1 py-3 rounded-xl font-black text-base bg-green-600 text-white shadow-md"><i class="fa-solid fa-circle-dollar-to-slot"></i> INCOME</button>
-                    <button id="expenseTabBtn" onclick="switchIETab('expense')" class="flex-1 py-3 rounded-xl font-black text-base bg-gray-200 dark:bg-slate-700 text-gray-700 dark:text-gray-300"><i class="fa-solid fa-cart-shopping"></i> EXPENSE</button>
+                    <button id="expenseTabBtn" onclick="switchIETab('expense')" class="flex-1 py-3 rounded-xl font-black text-base bg-red-600 text-white shadow-md"><i class="fa-solid fa-cart-shopping"></i> EXPENSE</button>
                 </div>
                 <div id="ieSummaryCard" class="premium-card mb-2 shrink-0">
                     <div class="flex justify-between items-center">
@@ -983,8 +983,8 @@
                                 <span class="text-green-600 dark:text-amber-400 text-base font-bold block mt-0.5">${t.rem || '—'}</span>
                             </div>
                         </td>
-                        <td class="p-2 text-rose-600 dark:text-rose-400 font-black text-base">${t.type === 'GAVE' ? '₹'+t.amt.toFixed(0) : '-'}</td>
-                        <td class="p-2 text-emerald-600 dark:text-emerald-400 font-black text-base">${t.type === 'GOT' ? '₹'+t.amt.toFixed(0) : '-'}</td>
+                        <td class="p-2 text-rose-600 dark:text-rose-400 font-black text-base whitespace-nowrap">${t.type === 'GAVE' ? '₹'+t.amt.toFixed(0) : '-'}</td>
+                        <td class="p-2 text-emerald-600 dark:text-emerald-400 font-black text-base whitespace-nowrap">${t.type === 'GOT' ? '₹'+t.amt.toFixed(0) : '-'}</td>
                         <td class="p-2 ${running >= 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'} font-black text-base">₹${Math.abs(running).toFixed(0)}</td>
                     </tr>
                 `; 
@@ -1036,6 +1036,7 @@
                     <div class="flex gap-2">
                         <button id="mCash" onclick="setM('CASH')" class="flex-1 py-2 rounded-lg border font-black text-green-700 dark:text-amber-400 text-base">💵 CASH</button>
                         <button id="mUpi" onclick="setM('UPI')" class="flex-1 py-2 rounded-lg border font-black text-green-700 dark:text-amber-400 text-base">📲 UPI</button>
+                        <button id="mBank" onclick="setM('BANK')" class="flex-1 py-2 rounded-lg border font-black text-green-700 dark:text-amber-400 text-base">🏦 BANK</button>
                     </div>
                     <input id="tr" class="w-full p-2 rounded-lg border input-premium text-base" placeholder="Remarks / Notes">
                     <div class="grid grid-cols-2 gap-2">
@@ -1051,13 +1052,19 @@
         }
         function setM(m) { 
             document.getElementById('tm').value = m; 
-            const cashBtn = document.getElementById('mCash'), upiBtn = document.getElementById('mUpi'); 
+            const cashBtn = document.getElementById('mCash'), upiBtn = document.getElementById('mUpi'), bankBtn = document.getElementById('mBank'); 
             if(m === 'CASH') { 
                 if(cashBtn) cashBtn.className = 'flex-1 py-2 rounded-lg bg-amber-400 text-black font-black shadow-md text-base'; 
                 if(upiBtn) upiBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
-            } else { 
+                if(bankBtn) bankBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
+            } else if(m === 'UPI') { 
                 if(cashBtn) cashBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
                 if(upiBtn) upiBtn.className = 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-black shadow-md text-base'; 
+                if(bankBtn) bankBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
+            } else if(m === 'BANK') { 
+                if(cashBtn) cashBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
+                if(upiBtn) upiBtn.className = 'flex-1 py-2 rounded-lg bg-gray-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold text-base'; 
+                if(bankBtn) bankBtn.className = 'flex-1 py-2 rounded-lg bg-blue-600 text-white font-black shadow-md text-base'; 
             } 
         }
         function saveTrans(type) { 
@@ -1330,22 +1337,42 @@
         }
 
         function openAddExpenseModal() { 
-            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
-            const categories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
-            let options = '<option value="">-- Select Category --</option>';
-            categories.forEach(cat => {
-                options += `<option value="${cat}">🍔 ${cat}</option>`;
+            // Income category-കൾ എടുക്കുക (Expense-ന് Income category-കൾ കാണിക്കും)
+            const incomeCategories = db.incomeCategories || ['Salary', 'Business', 'Rent', 'Investment', 'Gift', 'Other'];
+            let incomeOptions = '<option value="">-- Select Income Category to Deduct From --</option>';
+            incomeCategories.forEach(cat => {
+                incomeOptions += `<option value="${cat}">💰 ${cat}</option>`;
+            });
+            
+            // Expense category-കൾ എടുക്കുക
+            const expenseCategories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
+            let expenseOptions = '<option value="">-- Select Expense Reason --</option>';
+            expenseCategories.forEach(cat => {
+                expenseOptions += `<option value="${cat}">🍔 ${cat}</option>`;
             });
             
             openModal(`
                 <h2 class="font-black text-center text-xl mb-3"><i class="fa-solid fa-cart-shopping text-red-500"></i> Add Expense</h2>
                 <div class="space-y-3">
-                    <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div>
+                    <div><label class="text-sm font-bold">Amount to Deduct</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" placeholder="₹ 0"></div>
                     <div>
-                        <label class="text-sm font-bold">Category</label>
+                        <label class="text-sm font-bold">Deduct From Income Category</label>
                         <div class="flex gap-2">
-                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
-                                ${options}
+                            <select id="ieIncomeCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${incomeOptions}
+                            </select>
+                            <button onclick="addNewCategory('income')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                        <div class="mt-2">
+                            <button onclick="showCategoryList('income')" class="text-xs text-blue-600 hover:underline">📋 Manage Categories</button>
+                            <div id="categoryListContainer" class="hidden mt-2"></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold">Expense Reason (എന്തിന് ചെലവാക്കണം)</label>
+                        <div class="flex gap-2">
+                            <select id="ieExpenseCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${expenseOptions}
                             </select>
                             <button onclick="addNewCategory('expense')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
                         </div>
@@ -1356,7 +1383,7 @@
                     </div>
                     <div><label class="text-sm font-bold">Date</label><input id="ieDate" type="date" class="w-full p-2 rounded-xl border input-premium text-base" value="${getToday()}"></div>
                     <div><label class="text-sm font-bold">Notes</label><textarea id="ieNotes" class="w-full p-2 rounded-xl border input-premium text-base" rows="2" placeholder="Additional details..."></textarea></div>
-                    <button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="saveExpenseEntry()">💾 SAVE EXPENSE</button>
+                    <button class="w-full p-3 bg-red-600 text-white font-black rounded-xl action-btn text-base" onclick="saveExpenseEntry()">💾 DEDUCT & SAVE</button>
                     <button class="w-full text-green-500 dark:text-amber-400 text-base" onclick="closeModal()">Cancel</button>
                 </div>
             `); 
@@ -1456,17 +1483,59 @@
         function saveExpenseEntry() { 
             const amount = parseFloat(document.getElementById('ieAmount').value); 
             if(isNaN(amount)||amount<=0) return alert("Please enter valid amount"); 
-            const category = document.getElementById('ieCategory').value; 
-            if(!category || category === '') return alert("Please select a category"); 
+            const incomeCategory = document.getElementById('ieIncomeCategory').value; 
+            if(!incomeCategory || incomeCategory === '') return alert("Please select an Income category to deduct from"); 
+            const expenseCategory = document.getElementById('ieExpenseCategory').value; 
+            if(!expenseCategory || expenseCategory === '') return alert("Please select an Expense reason (എന്തിന് ചെലവാക്കണം)"); 
             const date = document.getElementById('ieDate').value; 
             const notes = document.getElementById('ieNotes').value.trim(); 
+            
+            // Income-ൽ നിന്ന് പണം കുറയ്ക്കുക
+            const incomeEntries = db.incomes.filter(i => i.category === incomeCategory);
+            let remainingAmount = amount;
+            let deductedIncomes = [];
+            
+            // Income entries-ൽ നിന്ന് പണം കുറയ്ക്കുക
+            for (let i = 0; i < incomeEntries.length && remainingAmount > 0; i++) {
+                const inc = incomeEntries[i];
+                const deductAmount = Math.min(remainingAmount, inc.amount);
+                inc.amount -= deductAmount;
+                remainingAmount -= deductAmount;
+                deductedIncomes.push({
+                    id: inc.id,
+                    deductAmount: deductAmount,
+                    remaining: inc.amount
+                });
+                // If income entry becomes 0, remove it
+                if (inc.amount === 0) {
+                    db.incomes = db.incomes.filter(x => x.id !== inc.id);
+                }
+            }
+            
+            if (remainingAmount > 0) {
+                alert(`⚠️ Not enough balance in ${incomeCategory} category! Available: ₹${(amount - remainingAmount).toFixed(2)}`);
+                return;
+            }
+            
+            // Expense ആയി രേഖപ്പെടുത്തുക
             let icon = 'fa-cart-shopping'; 
-            if(category === 'Food') icon = 'fa-utensils'; 
-            else if(category === 'Travel') icon = 'fa-plane'; 
-            else if(category === 'Bills') icon = 'fa-file-invoice-dollar'; 
-            else if(category === 'Shopping') icon = 'fa-bag-shopping'; 
-            else if(category === 'Medical') icon = 'fa-hospital'; 
-            db.expenses.push({ id: Date.now(), amount, category, date, notes, icon }); 
+            if(expenseCategory === 'Food') icon = 'fa-utensils'; 
+            else if(expenseCategory === 'Travel') icon = 'fa-plane'; 
+            else if(expenseCategory === 'Bills') icon = 'fa-file-invoice-dollar'; 
+            else if(expenseCategory === 'Shopping') icon = 'fa-bag-shopping'; 
+            else if(expenseCategory === 'Medical') icon = 'fa-hospital'; 
+            
+            db.expenses.push({ 
+                id: Date.now(), 
+                amount: amount, 
+                category: expenseCategory, // എന്തിന് ചെലവാക്കണം
+                incomeCategory: incomeCategory, // ഏത് Income-ൽ നിന്ന് കുറച്ചു
+                date: date, 
+                notes: notes, 
+                icon: icon,
+                deductedFrom: deductedIncomes
+            }); 
+            
             saveDB(); 
             closeModal(); 
             renderIncomeExpenseList(); 
@@ -1506,11 +1575,18 @@
         function openEditExpenseModal(id) { 
             const exp = db.expenses.find(e => e.id === id); 
             if(!exp) return; 
-            // കേറ്റഗറി ലിസ്റ്റ് എടുക്കുക
-            const categories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
-            let options = '';
-            categories.forEach(cat => {
-                options += `<option value="${cat}" ${exp.category === cat ? 'selected' : ''}>🍔 ${cat}</option>`;
+            // Income category-കൾ എടുക്കുക
+            const incomeCategories = db.incomeCategories || ['Salary', 'Business', 'Rent', 'Investment', 'Gift', 'Other'];
+            let incomeOptions = '';
+            incomeCategories.forEach(cat => {
+                incomeOptions += `<option value="${cat}" ${exp.incomeCategory === cat ? 'selected' : ''}>💰 ${cat}</option>`;
+            });
+            
+            // Expense category-കൾ എടുക്കുക
+            const expenseCategories = db.expenseCategories || ['Food', 'Travel', 'Bills', 'Shopping', 'Medical', 'Other'];
+            let expenseOptions = '';
+            expenseCategories.forEach(cat => {
+                expenseOptions += `<option value="${cat}" ${exp.category === cat ? 'selected' : ''}>🍔 ${cat}</option>`;
             });
             
             openModal(`
@@ -1518,10 +1594,19 @@
                 <div class="space-y-3">
                     <div><label class="text-sm font-bold">Amount</label><input id="ieAmount" type="number" step="0.01" class="w-full p-3 text-2xl text-center font-black rounded-xl border input-premium" value="${exp.amount}"></div>
                     <div>
-                        <label class="text-sm font-bold">Category</label>
+                        <label class="text-sm font-bold">Deduct From Income Category</label>
                         <div class="flex gap-2">
-                            <select id="ieCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
-                                ${options}
+                            <select id="ieIncomeCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${incomeOptions}
+                            </select>
+                            <button onclick="addNewCategory('income')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-sm font-bold">Expense Reason (എന്തിന് ചെലവാക്കണം)</label>
+                        <div class="flex gap-2">
+                            <select id="ieExpenseCategory" class="flex-1 p-2 rounded-xl border input-premium text-base">
+                                ${expenseOptions}
                             </select>
                             <button onclick="addNewCategory('expense')" class="bg-blue-600 text-white px-3 py-2 rounded-xl font-bold text-sm">+ Add</button>
                         </div>
@@ -1550,13 +1635,63 @@
         function updateExpenseEntry(id) { 
             const exp = db.expenses.find(e => e.id === id); 
             if(exp) { 
-                exp.amount = parseFloat(document.getElementById('ieAmount').value); 
-                exp.category = document.getElementById('ieCategory').value; 
-                exp.date = document.getElementById('ieDate').value; 
-                exp.notes = document.getElementById('ieNotes').value.trim(); 
-                saveDB(); 
-                closeModal(); 
-                renderIncomeExpenseList(); 
+                // Revert previous deduction
+                if (exp.deductedFrom) {
+                    exp.deductedFrom.forEach(ded => {
+                        const inc = db.incomes.find(i => i.id === ded.id);
+                        if (inc) {
+                            inc.amount += ded.deductAmount;
+                        } else {
+                            // If income entry was deleted, create a new one
+                            db.incomes.push({
+                                id: ded.id,
+                                amount: ded.deductAmount,
+                                category: exp.incomeCategory,
+                                date: exp.date,
+                                notes: `Restored from expense edit`,
+                                icon: 'fa-circle-dollar-to-slot'
+                            });
+                        }
+                    });
+                }
+                
+                exp.amount = parseFloat(document.getElementById('ieAmount').value);
+                exp.incomeCategory = document.getElementById('ieIncomeCategory').value;
+                exp.category = document.getElementById('ieExpenseCategory').value;
+                exp.date = document.getElementById('ieDate').value;
+                exp.notes = document.getElementById('ieNotes').value.trim();
+                
+                // Apply new deduction
+                const amount = exp.amount;
+                const incomeCategory = exp.incomeCategory;
+                const incomeEntries = db.incomes.filter(i => i.category === incomeCategory);
+                let remainingAmount = amount;
+                let deductedIncomes = [];
+                
+                for (let i = 0; i < incomeEntries.length && remainingAmount > 0; i++) {
+                    const inc = incomeEntries[i];
+                    const deductAmount = Math.min(remainingAmount, inc.amount);
+                    inc.amount -= deductAmount;
+                    remainingAmount -= deductAmount;
+                    deductedIncomes.push({
+                        id: inc.id,
+                        deductAmount: deductAmount,
+                        remaining: inc.amount
+                    });
+                    if (inc.amount === 0) {
+                        db.incomes = db.incomes.filter(x => x.id !== inc.id);
+                    }
+                }
+                
+                if (remainingAmount > 0) {
+                    alert(`⚠️ Not enough balance in ${incomeCategory} category! Available: ₹${(amount - remainingAmount).toFixed(2)}`);
+                    return;
+                }
+                
+                exp.deductedFrom = deductedIncomes;
+                saveDB();
+                closeModal();
+                renderIncomeExpenseList();
             } 
         }
 
@@ -1570,6 +1705,25 @@
 
         function deleteExpenseEntry(id) { 
             if(confirm("Delete this expense entry?")) { 
+                const exp = db.expenses.find(e => e.id === id);
+                if (exp && exp.deductedFrom) {
+                    // Restore deducted amounts
+                    exp.deductedFrom.forEach(ded => {
+                        const inc = db.incomes.find(i => i.id === ded.id);
+                        if (inc) {
+                            inc.amount += ded.deductAmount;
+                        } else {
+                            db.incomes.push({
+                                id: ded.id,
+                                amount: ded.deductAmount,
+                                category: exp.incomeCategory,
+                                date: exp.date,
+                                notes: `Restored from expense deletion`,
+                                icon: 'fa-circle-dollar-to-slot'
+                            });
+                        }
+                    });
+                }
                 db.expenses = db.expenses.filter(e => e.id !== id); 
                 saveDB(); 
                 renderIncomeExpenseList(); 
